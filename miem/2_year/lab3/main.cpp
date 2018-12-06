@@ -2,11 +2,27 @@
 
 #include "mainwindow.h"
 #include <QApplication>
-#include <QHash>
 
-#include <QDebug>
+#include <iostream>
+#include <fstream>
 
 using namespace std;
+
+#define TABLE_SIZE 10
+
+// todo
+// Хэш-функция, принимающую значение int и возращающую беззнаковое целое
+Uint hashFunc(string word) {
+    Uint hash = 5381;
+    int c;
+
+    const char *w = word.c_str();
+
+    while (c = *w++)
+        hash = ((hash << 5) + hash) + c;
+
+    return hash % TABLE_SIZE;
+}
 
 int main(int argc, char *argv[])
 {
@@ -16,7 +32,7 @@ int main(int argc, char *argv[])
 
 //    return a.exec();
 
-    Dict<string> d;
+    Dict<string, TABLE_SIZE> d;
 
     // конструктор по умолчанию: (размер коллекции == 0)
     assert(d.size() == 0);
@@ -45,54 +61,57 @@ int main(int argc, char *argv[])
 
     // метод удаления всех объектов: (непустая коллекция после удаления всех объектов становится равна
     // коллекции, созданной при помощи конструктора по умолчанию)
-    d.insert("Word 1");
-    d.insert("Word 1");
-    d.insert("Word 2");
-    d.insert("Word 2");
+    d.insert("Word 1", 2);
+    d.insert("Word 2", 2);
     d.clear();
-    // todo
-    // assert(d == Dict<string>());
+    assert(d == (Dict<string, TABLE_SIZE>()));
 
     // (варианты 4–15) оператор []: (значение, связанное с добавленным ключом, равно ожидаемому)
-    d.insert("Word 1");
-    d.insert("Word 1");
-    d.insert("Word 2");
-    d.insert("Word 2");
-    d.insert("Word 2");
-    assert(d["Word 1"] == 2);
-    assert(d["Word 2"] == 3);
+    d.insert("Word_1", 2);
+    d.insert("Word_1", 2);
+    d.insert("Word_2", 3);
+    d.insert("Word_3");
+    d.insert("Word_4");
+    d.insert("Word_5", 10);
+    assert(d["Word_1"] == 4);
+    assert(d["Word_2"] == 3);
+
+    // конструктор копирования: (копия непустой коллекции равна оригиналу, после вставки/удаления
+    // объекта (варианты 1–3) или изменения одного из значений (варианты 4–15) равенство нарушается)
+    Dict<string, TABLE_SIZE> d2(d);
+    assert(d2 == d);
+    d2.set("Word_1", 10);
+    assert(d2 != d);
+
+    // операторы << и >>: (проверка, аналогичная конструктору копирования)
+    ofstream out("data.txt");
+    out << d;
+    out.close(); // question: почему без этого не работает?
+    ifstream in("data.txt");
+    d2.clear();
+    while (!in.eof()) {
+        in >> d2;
+    }
+    assert(d == d2);
+
+    // Работа итератора проверяется выводом содержимого непустой коллекции на экран.
+    for (auto it = d2.begin(); it != d2.end(); ++it) {
+        cout << it.word() << ' ' << it.count() << "\n";
+    }
 
     // (варианты 4–6) при объединении двух не совпадающих коллекций, оператор || возвращает кол-
     // лекцию, размер которой равен сумме размеров слагаемых; при объединении двух идентичных кол-
     // лекций, возвращает не равную им (при ненулевых значениях) новую коллекцию того же размера
-
-    // конструктор копирования: (копия непустой коллекции равна оригиналу, после вставки/удаления
-    // объекта (варианты 1–3) или изменения одного из значений (варианты 4–15) равенство нарушается)
-
-    // операторы << и >>: (проверка, аналогичная конструктору копирования)
-
-    // Работа итератора проверяется выводом содержимого непустой коллекции на экран.
-
-//    for (auto it = d.begin(); it != d.end(); it++) {
-//        qDebug() << it.word().c_str() << it.count();
-//    }
-    auto it2 = d.begin();
-    qDebug() << it2.word().c_str() << it2.count();
-    it2++;
-    it2++;
-    it2++;
-    it2++;
-    it2++;
-    it2++;
-    qDebug() << it2.word().c_str() << it2.count();
-    cout << d;
-
-//    QHash<const char*, int> q;
-//    q.insert("123", 1);
-//    q.insert("777", 211);
-//    for (QHash<const char*, int>::iterator qit = q.begin(); qit != q.end(); ++qit) {
-//        qDebug() << qit.key() << qit.value();
-//    }
+    d2.clear();
+    d2.insert("Word_201", 20);
+    d2.insert("Word_333", 99);
+    Dict<string, TABLE_SIZE> d3 = d || d2;
+    assert(d3.size() == d.size() + d2.size());
+    d3.remove("Word_201");
+    d3.remove("Word_333");
+    // now d3 == d
+    d3 = d3 || d;
+    assert(d3.size() == d.size());
 
     return 0;
 }

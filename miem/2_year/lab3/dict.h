@@ -2,15 +2,15 @@
 #define DICT_H
 
 #include <iostream>
+#include <sstream>
 
 using namespace std;
 
 typedef unsigned int Uint;
 
-extern Uint hashFunc(int);
 extern Uint hashFunc(string);
 
-template <class T, const Uint TABLE_SIZE = 100>
+template <class T>
 class Dict {
 private:
     struct Node {
@@ -24,10 +24,11 @@ private:
 
     Node **_table;
     Uint _size;
+    Uint _tableSize;
 public:
     // конструктор по умолчанию
-    Dict() : _size(0) {
-        _table = new Node *[TABLE_SIZE]();
+    Dict(Uint tableSize = 100) : _size(0), _tableSize(tableSize) {
+        _table = new Node *[_tableSize]();
     }
 
     // деструктор
@@ -38,14 +39,15 @@ public:
 
     // конструктор копирования
     Dict(const Dict& d) : Dict() {
+        _tableSize = d._tableSize;
         for (auto it = d.begin(); it != d.end(); ++it) {
             insert(it.word(), it.count());
         }
     }
 
-    // question: по значению или по ссылке?
     Dict& operator =(const Dict& d) {
         clear();
+        _tableSize = d._tableSize;
         for (auto it = d.begin(); it != d.end(); ++it) {
             insert(it.word(), it.count());
         }
@@ -54,9 +56,10 @@ public:
 
     // метод добавления ключа
     void insert(const T &word, Uint count = 1) {
-        Uint hash = hashFunc(word);
+        Uint h = hash(word);
+
         Node *prev = nullptr;
-        Node *entry = _table[hash];
+        Node *entry = _table[h];
 
         if (count <= 0) {
             count = 1;
@@ -71,7 +74,7 @@ public:
             entry = new Node(word, count);
 
             if (prev == nullptr) {
-                _table[hash] = entry;
+                _table[h] = entry;
             } else {
                 prev->next = entry;
             }
@@ -84,13 +87,13 @@ public:
     }
 
     // метод проверки на наличие ключа в контейнере
-    bool contains(const T &word) {
+    bool contains(const T &word) const {
         return (count(word) != 0);
     }
 
     // метод удаления отдельного ключа
     void remove(const T &word) {
-        Uint hashValue = hashFunc(word);
+        Uint hashValue = hash(word);
         Node *prev = nullptr;
         Node *entry = _table[hashValue];
 
@@ -114,7 +117,7 @@ public:
     }
 
     Uint count(const T &word) const {
-        for (Node *i = _table[hashFunc(word)]; i != nullptr; i = i->next) {
+        for (Node *i = _table[hash(word)]; i != nullptr; i = i->next) {
             if (i->word == word) {
                 return i->count;
             }
@@ -130,7 +133,7 @@ public:
             return;
         }
 
-        for (Node *i = _table[hashFunc(word)]; i != nullptr; i = i->next) {
+        for (Node *i = _table[hash(word)]; i != nullptr; i = i->next) {
             if (i->word == word) {
                 i->count = count;
                 return;
@@ -140,7 +143,7 @@ public:
 
     // метод удаления все хранимые объекты
     void clear() {
-        for (Uint i = 0; i < TABLE_SIZE; ++i) {
+        for (Uint i = 0; i < _tableSize; ++i) {
             Node *entry = _table[i];
             while (entry != nullptr) {
                 Node *prev = entry;
@@ -154,6 +157,14 @@ public:
 
     // метод, возращающий число хранящихся объектов
     Uint size() const { return _size; }
+
+    void setTableSize(Uint tableSize) {
+        if (tableSize > 0) {
+            _tableSize = tableSize;
+        }
+    }
+
+    Uint getTableSize() const { return _tableSize; }
 
     // класс-итератор
     class iterator {
@@ -183,7 +194,7 @@ public:
 
         // метод, перемещающий итератор вперед
         iterator& operator ++() {
-            Uint index = hashFunc(_cur->word);
+            Uint index = d->hash(_cur->word);
 
             if (_cur == nullptr) {
                 return *this;
@@ -194,7 +205,7 @@ public:
                 return *this;
             }
 
-            for (Uint i = index+1; i < TABLE_SIZE; ++i) {
+            for (Uint i = index+1; i < d->_tableSize; ++i) {
                 if (d->_table[i] != nullptr) {
                     _cur = d->_table[i];
                     return *this;
@@ -222,7 +233,7 @@ public:
 
     // методы, возрающие итератор для своего первого и последнего элемента
     iterator begin() const {
-        for (Uint i = 0; i < TABLE_SIZE; ++i) {
+        for (Uint i = 0; i < _tableSize; ++i) {
             if (_table[i] != nullptr) {
                 return iterator(_table[i], this);
             }
@@ -235,22 +246,23 @@ public:
         return iterator(nullptr, this);
     }
 
+    Uint hash(const T& word) const {
+        return hashFunc(word) % _tableSize;
+    }
+
     // оператор ==, возрающий равенство коллекций по ключам (и значениям)
     bool operator ==(const Dict &d) {
         if (_size != d._size) {
             return false;
         }
 
-        auto i = begin(), j = d.begin();
-        for (; i != end() && j != d.end(); ++i, ++j) {
-            if (i.word() != j.word() || i.count() != j.count()) {
+        for (auto it = begin(); it != end(); ++it) {
+            if (it.count() != d[it.word()]) {
                 return false;
             }
         }
 
-        if (i == end() && j == d.end()) {
-            return true;
-        }
+        return true;
     }
 
     bool operator !=(const Dict &d) {
@@ -264,7 +276,6 @@ public:
 
     // оператор ||, возвращающий новую коллекцию, содержащую все ключи обеих кол-
     // лекций и суммирующий при этом их значения
-    // question: возращать по ссылке или по значению?
     Dict operator ||(const Dict &d) {
         Dict result = *this;
 
@@ -276,24 +287,40 @@ public:
     }
 
     // оператор <<, отправляющий коллекцию в поток (ofstream)
-    friend ostream& operator <<(ostream &s, const Dict &d) {
+    friend ostream& operator <<(ostream &stream, const Dict &d) {
         int c = 0;
         for (auto it = d.begin(); it != d.end(); ++it, ++c) {
-            s << it.word() << ' ' << it.count();
+            stream << it.word() << '|' << it.count();
             if (c != d._size-1) {
-                s << "\n";
+                stream << "\n";
             }
         }
-        return s;
+        return stream;
     }
 
     // оператор >>, читающий коллекцию из потока
-    friend istream& operator >>(istream &s, Dict &d) {
+    friend istream& operator >>(istream &stream, Dict &d) {
         T word;
         Uint count;
-        s >> word >> count;
-        d.insert(word, count);
-        return s;
+        string line;
+        getline(stream, line);
+        while (line != "") {
+            size_t pos = 0;
+            while (true) {
+                size_t end = line.find('|', pos);
+                if (end == line.npos) {
+                    count = atoi(line.substr(pos).c_str());
+                    break;
+                } else {
+                    word = line.substr(pos, end - pos);
+                    pos = end + 1;
+                }
+            }
+            d.insert(word, count);
+            line.clear();
+            getline(stream, line);
+        }
+        return stream;
     }
 };
 

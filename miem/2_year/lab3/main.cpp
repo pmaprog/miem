@@ -8,8 +8,6 @@
 
 using namespace std;
 
-#define TABLE_SIZE 10
-
 // todo
 // Хэш-функция, принимающую значение int и возращающую беззнаковое целое
 Uint hashFunc(string word) {
@@ -21,7 +19,7 @@ Uint hashFunc(string word) {
     while (c = *w++)
         hash = ((hash << 5) + hash) + c;
 
-    return hash % TABLE_SIZE;
+    return hash;
 }
 
 int main(int argc, char *argv[])
@@ -32,7 +30,7 @@ int main(int argc, char *argv[])
 
 //    return a.exec();
 
-    Dict<string, TABLE_SIZE> d;
+    Dict<string> d;
 
     // конструктор по умолчанию: (размер коллекции == 0)
     assert(d.size() == 0);
@@ -64,23 +62,23 @@ int main(int argc, char *argv[])
     d.insert("Word 1", 2);
     d.insert("Word 2", 2);
     d.clear();
-    assert(d == (Dict<string, TABLE_SIZE>()));
+    assert(d == (Dict<string>()));
 
     // (варианты 4–15) оператор []: (значение, связанное с добавленным ключом, равно ожидаемому)
-    d.insert("Word_1", 2);
-    d.insert("Word_1", 2);
-    d.insert("Word_2", 3);
-    d.insert("Word_3");
-    d.insert("Word_4");
-    d.insert("Word_5", 10);
-    assert(d["Word_1"] == 4);
-    assert(d["Word_2"] == 3);
+    d.insert("Word 1", 2);
+    d.insert("Word 1", 2);
+    d.insert("Word 2", 3);
+    d.insert("Word 3");
+    d.insert("Word 4");
+    d.insert("Word 5", 10);
+    assert(d["Word 1"] == 4);
+    assert(d["Word 2"] == 3);
 
     // конструктор копирования: (копия непустой коллекции равна оригиналу, после вставки/удаления
     // объекта (варианты 1–3) или изменения одного из значений (варианты 4–15) равенство нарушается)
-    Dict<string, TABLE_SIZE> d2(d);
+    Dict<string> d2(d);
     assert(d2 == d);
-    d2.set("Word_1", 10);
+    d2.set("Word 1", 10);
     assert(d2 != d);
 
     // операторы << и >>: (проверка, аналогичная конструктору копирования)
@@ -89,9 +87,8 @@ int main(int argc, char *argv[])
     out.close(); // question: почему без этого не работает?
     ifstream in("data.txt");
     d2.clear();
-    while (!in.eof()) {
-        in >> d2;
-    }
+    in >> d2;
+    in.close();
     assert(d == d2);
 
     // Работа итератора проверяется выводом содержимого непустой коллекции на экран.
@@ -103,12 +100,12 @@ int main(int argc, char *argv[])
     // лекцию, размер которой равен сумме размеров слагаемых; при объединении двух идентичных кол-
     // лекций, возвращает не равную им (при ненулевых значениях) новую коллекцию того же размера
     d2.clear();
-    d2.insert("Word_201", 20);
-    d2.insert("Word_333", 99);
-    Dict<string, TABLE_SIZE> d3 = d || d2;
+    d2.insert("Word 201", 20);
+    d2.insert("Word 333", 99);
+    Dict<string> d3 = d || d2;
     assert(d3.size() == d.size() + d2.size());
-    d3.remove("Word_201");
-    d3.remove("Word_333");
+    d3.remove("Word 201");
+    d3.remove("Word 333");
     // now d3 == d
     d3 = d3 || d;
     assert(d3.size() == d.size());

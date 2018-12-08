@@ -2,7 +2,8 @@
 
 Donation::Donation() : AbstractValue(), _name("Unnamed") { }
 
-Donation::Donation(const time_t time, const double amount, const std::string name) : AbstractValue(time, amount) {
+Donation::Donation(const time_t time, const double amount, const std::string name)
+    : AbstractValue(time, amount) {
     setName(name);
 }
 
@@ -21,7 +22,8 @@ void Donation::setName(const std::string name) {
 }
 
 bool Donation::operator ==(const Donation& d) const {
-    return (*dynamic_cast<const AbstractValue*>(this) == *dynamic_cast<const AbstractValue*>(&d) && _name == d._name);
+    return ((*dynamic_cast<const AbstractValue*>(this)
+            == *dynamic_cast<const AbstractValue*>(&d)) && (_name == d._name));
 }
 
 bool Donation::operator !=(const Donation& d) const {

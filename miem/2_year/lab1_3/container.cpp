@@ -1,5 +1,7 @@
 #include "container.h"
 
+#include <QDebug>
+
 Container::Container() {
     _front = _rear = nullptr;
     _size = 0;
@@ -16,7 +18,11 @@ Container::Container(const Container& c) : Container() {
 
 void Container::push(AbstractValue* av) {
     Item *tmp = new Item();
-    tmp->data = av;
+    if (av->getType() == "Purchase") {
+        tmp->data = new Purchase(av->getTime(), av->getAmount());
+    } else {
+        tmp->data = new Donation(av->getTime(), av->getAmount(), dynamic_cast<Donation*>(av)->getName());
+    }
     tmp->next = nullptr;
 
     if (_size == 0) {
@@ -33,6 +39,7 @@ void Container::pop() {
     if (_size != 0) {
         Item *item = _front;
         _front = _front->next;
+        delete item->data;
         delete item;
         _size--;
     }
@@ -49,20 +56,20 @@ unsigned int Container::size() const { return _size; }
 bool Container::operator ==(const Container& c) const {
     if (_size != c._size) {
         return false;
-    } else {
-        Iterator i = begin(), j = c.begin();
-        for (; i != end(); ++i, ++j) {
-            if ((*i)->getType() == (*j)->getType()) {
-                // Вызываем подходящий оператор сравнения.
-                if ((*i)->getType() == "Purchase") {
-                    if (*dynamic_cast<Purchase*>(*i) != *dynamic_cast<Purchase*>(*j)) break;
-                } else if ((*i)->getType() == "Donation") {
-                    if (*dynamic_cast<Donation*>(*i) != *dynamic_cast<Donation*>(*j)) break;
-                }
-            } else return false;
-        }
-        return (i == end());
     }
+
+    Iterator i = begin(), j = c.begin();
+    for (; i != end(); ++i, ++j) {
+        if ((*i)->getType() == (*j)->getType()) {
+            // Вызываем подходящий оператор сравнения.
+            if ((*i)->getType() == "Purchase") {
+                if (*dynamic_cast<Purchase*>(*i) != *dynamic_cast<Purchase*>(*j)) break;
+            } else {
+                if (*dynamic_cast<Donation*>(*i) != *dynamic_cast<Donation*>(*j)) break;
+            }
+        } else return false;
+    }
+    return (i == end());
 }
 
 bool Container::operator !=(const Container& c) const {
@@ -97,29 +104,25 @@ void Container::write(string filename) const {
     fout.close();
 }
 
-// todo
-// проверка
-bool Container::read(string filename) {
+void Container::read(string filename) {
     ifstream fin(filename);
-    if (!fin.is_open()) {
-        return false;
-    }
+
+    clear();
 
     while (!fin.eof()) {
         time_t time; double amount; std::string name, type;
-        AbstractValue *av = nullptr;
         fin >> type >> time >> amount;
         if (type == "Purchase") {
-            av = new Purchase(time, amount);
-        } else if (type == "Donation") {
+            Purchase p(time, amount);
+            push(&p);
+        } else {
             fin >> name;
-            av = new Donation(time, amount, name);
+            Donation d(time, amount, name);
+            push(&d);
         }
-        push(av);
     }
 
     fin.close();
-    return true;
 }
 
 Container::Iterator Container::begin() const {
@@ -138,7 +141,7 @@ Container::Iterator Container::Iterator::operator ++(int) {
     return old;
 }
 
-Container::Iterator Container::Iterator::operator ++() {
+Container::Iterator& Container::Iterator::operator ++() {
     if (_cur != nullptr) {
         _cur = _cur->next;
     }

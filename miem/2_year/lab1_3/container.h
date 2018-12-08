@@ -48,15 +48,14 @@ public:
     void write(string filename) const;
 
     // Чтение из файла.
-    bool read(string filename);
+    void read(string filename);
 
     class Iterator {
     public:
         Iterator(Item *item) : _cur(item) { }
 
-        // todo
         Iterator operator ++(int);
-        Iterator operator ++();
+        Iterator& operator ++();
 
         bool operator ==(const Iterator&) const;
         bool operator !=(const Iterator&) const;

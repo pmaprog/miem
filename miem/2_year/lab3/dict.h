@@ -1,14 +1,17 @@
 #ifndef DICT_H
 #define DICT_H
 
-#include <iostream>
 #include <sstream>
+#include <iostream>
+
+#include <QDebug>
 
 using namespace std;
 
 typedef unsigned int Uint;
 
 extern Uint hashFunc(string);
+extern Uint hashFunc(int);
 
 template <class T>
 class Dict {
@@ -25,9 +28,20 @@ private:
     Node **_table;
     Uint _size;
     Uint _tableSize;
+    double _loadFactor;
+
+    void resize(Uint newTableSize) {
+        Dict result(newTableSize);
+
+        for (auto i = begin(); i != end(); ++i)
+            result.insert(i.word(), i.count());
+
+        *this = result;
+    }
 public:
     // конструктор по умолчанию
-    Dict(Uint tableSize = 100) : _size(0), _tableSize(tableSize) {
+    Dict(Uint tableSize = 100) : _size(0), _loadFactor(0),
+        _tableSize(tableSize) {
         _table = new Node *[_tableSize]();
     }
 
@@ -38,18 +52,22 @@ public:
     }
 
     // конструктор копирования
-    Dict(const Dict& d) : Dict() {
-        _tableSize = d._tableSize;
-        for (auto it = d.begin(); it != d.end(); ++it) {
-            insert(it.word(), it.count());
+    Dict(const Dict& d) : Dict(d._tableSize) {
+        for (auto i = d.begin(); i != d.end(); ++i) {
+            insert(i.word(), i.count());
         }
     }
 
     Dict& operator =(const Dict& d) {
+        if (this == &d)
+            return *this;
+
         clear();
+        delete [] _table;
         _tableSize = d._tableSize;
-        for (auto it = d.begin(); it != d.end(); ++it) {
-            insert(it.word(), it.count());
+        _table = new Node*[_tableSize]();
+        for (auto i = d.begin(); i != d.end(); ++i) {
+            insert(i.word(), i.count());
         }
         return *this;
     }
@@ -75,6 +93,9 @@ public:
 
             if (prev == nullptr) {
                 _table[h] = entry;
+                _loadFactor = (_loadFactor * _tableSize + 1) / _tableSize;
+                if (_loadFactor >= 0.75)
+                    resize(_tableSize * 2 + 1);
             } else {
                 prev->next = entry;
             }
@@ -108,6 +129,8 @@ public:
         } else {
             if (prev == nullptr) {
                 _table[hashValue] = entry->next;
+                if (entry->next == nullptr)
+                    _loadFactor = (_loadFactor * _tableSize - 1) / _tableSize;
             } else {
                 prev->next = entry->next;
             }
@@ -152,17 +175,13 @@ public:
             }
             _table[i] = nullptr;
         }
-        _size = 0;
+        _size = _loadFactor = 0;
     }
 
     // метод, возращающий число хранящихся объектов
     Uint size() const { return _size; }
 
-    void setTableSize(Uint tableSize) {
-        if (tableSize > 0) {
-            _tableSize = tableSize;
-        }
-    }
+    double getLoadFactor() const { return _loadFactor; }
 
     Uint getTableSize() const { return _tableSize; }
 
@@ -179,7 +198,7 @@ public:
             if (_cur != nullptr) {
                 return _cur->word;
             } else {
-                return nullptr;
+                return T(nullptr);
             }
         }
 
@@ -251,7 +270,7 @@ public:
     }
 
     // оператор ==, возрающий равенство коллекций по ключам (и значениям)
-    bool operator ==(const Dict &d) {
+    bool operator ==(const Dict &d) const {
         if (_size != d._size) {
             return false;
         }
@@ -265,7 +284,7 @@ public:
         return true;
     }
 
-    bool operator !=(const Dict &d) {
+    bool operator !=(const Dict &d) const {
         return !(*this == d);
     }
 
@@ -290,33 +309,27 @@ public:
     friend ostream& operator <<(ostream &stream, const Dict &d) {
         int c = 0;
         for (auto it = d.begin(); it != d.end(); ++it, ++c) {
-            stream << it.word() << '|' << it.count();
-            if (c != d._size-1) {
-                stream << "\n";
-            }
+            stream << it.word() << '|' << it.count() << '\n';
         }
         return stream;
     }
 
     // оператор >>, читающий коллекцию из потока
+
     friend istream& operator >>(istream &stream, Dict &d) {
-        T word;
+        d.clear();
+        string word;
         Uint count;
         string line;
         getline(stream, line);
         while (line != "") {
-            size_t pos = 0;
-            while (true) {
-                size_t end = line.find('|', pos);
-                if (end == line.npos) {
-                    count = atoi(line.substr(pos).c_str());
-                    break;
-                } else {
-                    word = line.substr(pos, end - pos);
-                    pos = end + 1;
-                }
-            }
-            d.insert(word, count);
+            size_t pos = 0, sep = line.find('|', pos);
+            word = line.substr(pos, sep - pos);
+            count = atoi(line.substr(sep + 1).c_str());
+            stringstream ss(word);
+            T w;
+            ss >> w;
+            d.insert(w, count);
             line.clear();
             getline(stream, line);
         }

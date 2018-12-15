@@ -26,8 +26,7 @@ CONFIG += c++11
 
 SOURCES += \
         main.cpp \
-        mainwindow.cpp \
-    dict.cpp
+        mainwindow.cpp
 
 HEADERS += \
         mainwindow.h \

@@ -20,7 +20,7 @@
       <enum>Qt::ScrollBarAlwaysOff</enum>
      </property>
      <property name="editTriggers">
-      <set>QAbstractItemView::SelectedClicked</set>
+      <set>QAbstractItemView::NoEditTriggers</set>
      </property>
      <attribute name="horizontalHeaderMinimumSectionSize">
       <number>60</number>

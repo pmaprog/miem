@@ -42,6 +42,8 @@ AbbeDialog::AbbeDialog(QWidget *parent) :
 
         ++i;
     }
+    int lastRow = ui->tableWidget->rowCount();
+    ui->tableWidget->removeRow(lastRow-1);
 }
 
 AbbeDialog::~AbbeDialog()

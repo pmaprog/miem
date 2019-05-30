@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>456</width>
+    <height>410</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,7 +15,40 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QTableWidget" name="tableWidget"/>
+    <widget class="QTableWidget" name="tableWidget">
+     <property name="horizontalScrollBarPolicy">
+      <enum>Qt::ScrollBarAlwaysOff</enum>
+     </property>
+     <property name="editTriggers">
+      <set>QAbstractItemView::NoEditTriggers</set>
+     </property>
+     <attribute name="horizontalHeaderMinimumSectionSize">
+      <number>60</number>
+     </attribute>
+     <attribute name="verticalHeaderVisible">
+      <bool>false</bool>
+     </attribute>
+     <column>
+      <property name="text">
+       <string>Число измерений</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>q = 0,001</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>q = 0,01</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>q = 0,05</string>
+      </property>
+     </column>
+    </widget>
    </item>
   </layout>
  </widget>

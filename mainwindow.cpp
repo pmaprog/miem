@@ -6,11 +6,15 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow) {
     ui->setupUi(this);
 
+    dlg_abbe = new AbbeDialog(this);
+    dlg_abbe->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
+
     q = 0.001;
 }
 
 MainWindow::~MainWindow() {
     delete ui;
+    delete dlg_abbe;
 }
 
 void MainWindow::update_tbl_data() {
@@ -30,6 +34,7 @@ void MainWindow::on_select_file_triggered() {
 //                                                    "Открыть файл выборки",
 //                                                    "",
 //                                                    "Все файлы (*)");
+
     QString filename = "C:\\Users\\yngmrk\\Desktop\\Ab_v25_a.txt";
 
     if (filename != "") {
@@ -41,9 +46,7 @@ void MainWindow::on_select_file_triggered() {
 }
 
 void MainWindow::on_show_abbe_triggered() {
-    AbbeDialog *dlg = new AbbeDialog(this);
-    dlg->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
-    dlg->show();
+    dlg_abbe->show();
 }
 
 void MainWindow::on_btn_calc_clicked() {
@@ -54,12 +57,12 @@ void MainWindow::on_btn_calc_clicked() {
     ui->le_v->setText(QString::number(_sample.v()));
 
     ui->btn_report->setEnabled(true);
+    ui->gb_q->setEnabled(true);
 }
 
 void MainWindow::on_rb_001_clicked() {
     q = 0.001;
 }
-
 
 void MainWindow::on_rb_01_clicked() {
     q = 0.01;

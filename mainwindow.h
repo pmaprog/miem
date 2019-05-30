@@ -41,9 +41,11 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    AbbeDialog *dlg_abbe;
 
     Sample _sample;
     double q;
+    std::vector<double> vq[3];
 
     void update_tbl_data();
 };

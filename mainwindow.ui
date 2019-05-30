@@ -42,7 +42,7 @@
    </widget>
    <widget class="QGroupBox" name="gb_q">
     <property name="enabled">
-     <bool>false</bool>
+     <bool>true</bool>
     </property>
     <property name="geometry">
      <rect>
@@ -59,7 +59,7 @@
      <item>
       <widget class="QRadioButton" name="rb_001">
        <property name="enabled">
-        <bool>false</bool>
+        <bool>true</bool>
        </property>
        <property name="text">
         <string>0,001</string>
@@ -322,7 +322,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>530</x>

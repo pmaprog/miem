@@ -26,21 +26,46 @@ void Sample::load_from_file(const std::string &path) {
 }
 
 double Sample::mean() const {
+    double result = 0;
 
+    for (auto i : *this) {
+        result += i;
+    }
+
+    result /= size();
+
+    return result;
 }
 
 double Sample::variance() const {
+    double avg = mean();
+    double result = 0;
 
+    for (auto i : *this) {
+        result += (i - avg) * (i - avg);
+    }
+
+    result /= size() - 1;
+
+    return result;
 }
 
 double Sample::variance_seq() const {
+    double result = 0;
 
+    for (int i = 0; i < size()-1; ++i) {
+        result += ((*this)[i+1] - (*this)[i]) * ((*this)[i+1] - (*this)[i]);
+    }
+
+    result /= 2 * (size() - 1);
+
+    return result;
 }
 
 double Sample::std() const {
-
+    return sqrt(variance());
 }
 
 double Sample::v() const {
-
+    return variance_seq() / variance();
 }

@@ -5,6 +5,7 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <cmath>
 
 class Sample : public std::vector<double> {
 public:

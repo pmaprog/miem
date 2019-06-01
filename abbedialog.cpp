@@ -10,11 +10,14 @@ AbbeDialog::AbbeDialog(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    ui->tableWidget->setColumnWidth(0,120);
+    setWindowFlag(Qt::WindowContextHelpButtonHint, false);
+
+    ui->tableWidget->setFont(font());
+    ui->tableWidget->setColumnWidth(0, 200);
 
     int n, i = 0;
     double q1, q2, q3;
-    std::ifstream fin("/home/kuder/abbData.txt");
+    std::ifstream fin("abbe.txt");
 
     while (fin) {
         fin >> n >> q1 >> q2 >> q3;

@@ -11,6 +11,7 @@
 #include <QDebug>
 
 #include <QMainWindow>
+#include <QMessageBox>
 #include <QString>
 #include <QFileDialog>
 
@@ -39,6 +40,8 @@ private slots:
 
     void on_rb_05_clicked();
 
+    void on_btn_report_clicked() const;
+
 private:
     Ui::MainWindow *ui;
     AbbeDialog *dlg_abbe;
@@ -48,6 +51,7 @@ private:
     std::vector<double> vq[3];
 
     void update_tbl_data();
+    void clear_results();
 };
 
 #endif // MAINWINDOW_H

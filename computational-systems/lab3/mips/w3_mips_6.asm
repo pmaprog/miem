@@ -6,19 +6,19 @@ str: .asciiz "S = "
 
 .text
 main:
-l.s $f1, one
+lwc1 $f1, one # загружаем в $f1 единицу
 
-lwc1 $f0, a
-sqrt.s $f0, $f0      # sqrt(A)
-add.s $f0, $f0, $f1  # sqrt(A) + 1
-swc1 $f0, S
+lwc1 $f0, a # загружаем в $f0 наше исходное число A
+sqrt.s $f0, $f0 # вычисляем sqrt(A)
+add.s $f0, $f0, $f1 # добавляем 1
+swc1 $f0, S # загружаем в переменную S наш результат
 
-# print "S = "
+# выводим "S = "
 li $v0, 4
 la $a0, str
 syscall
 
-# print $f12 value
+# выводим число
 lwc1 $f12, S
 li $v0, 2
 syscall

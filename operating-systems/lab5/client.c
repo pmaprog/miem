@@ -3,8 +3,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #include "server.h"
 
@@ -27,7 +27,8 @@ int main(int argc, char **argv) {
     }
 
     strcpy(msg.filename, argv[1]);
-    write (fdpub, (char*)&msg, sizeof(msg));
+    write(fdpub, (char*)&msg, sizeof(msg));
+    close(fdpub);
 
     /* личный именованный канал открывается для чтения */
     if ((fdpriv = open(msg.privfifo, O_RDONLY)) == -1) {

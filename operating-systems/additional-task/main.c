@@ -18,18 +18,75 @@
 
 
 int main(int argc, char *argv[]) {
-    int p[2];
+    int sem_id, p[2], i;
+    char path[] = "main.c";
+    key_t key;
+    struct sembuf P = {0, -1, SEM_UNDO};
+    struct sembuf V = {0, +1, SEM_UNDO};
+    char msg[128];
 
-    pipe(p);
+    if ((key = ftok(path, 0)) < 0) {
+        perror("ftok()");
+        return -1;
+    }
+
+    if ((sem_id = semget(key, 1, 0666 | IPC_CREAT)) < 0) {
+        perror("semget()");
+        return -1;
+    }
+
+    if (semop(sem_id, &V, 1) < 0) {
+        perror("semop()");
+        return -1;
+    }
+
+    if (pipe(p) < 0) {
+        perror("pipe()");
+        return -1;
+    }
+
+    if (fcntl(p[0], F_SETFL, O_NONBLOCK) <0 ) {
+        perror("fcntl()");
+        return -1;
+    }
+
+    FILE *r = fdopen(p[0], "r");
+    FILE *w = fdopen(p[1], "w");
 
     switch (fork()) {
     case -1:
-        perror("Неудачный вызов fork()");
+        perror("fork()");
         return -1;
     
     case 0:
+        for (i = 1; i <= 5; ++i) {
+            semop(sem_id, &P, 1);
+            if (fgets(msg, sizeof(msg), r) != NULL) {
+                puts(msg);
+            }
+            fprintf(w, "[%d] hello from child", i);
+            fflush(w);
+            semop(sem_id, &V, 1);
+            sleep(1);
+        }
+
+        fclose(w);
+        fclose(r);
         return 0;
     }
 
+    for (i = 1; i <= 5; ++i) {
+        semop(sem_id, &P, 1);
+        if (fgets(msg, sizeof(msg), r) != NULL) {
+            puts(msg);
+        }
+        fprintf(w, "[%d] hello from parent", i);
+        fflush(w);
+        semop(sem_id, &V, 1);
+        sleep(1);
+    }
+
+    fclose(w);
+    fclose(r);
     return 0;
 }

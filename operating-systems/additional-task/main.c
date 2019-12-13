@@ -35,18 +35,18 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    if (semop(sem_id, &V, 1) < 0) {
-        perror("semop()");
-        return -1;
-    }
-
     if (pipe(p) < 0) {
         perror("pipe()");
         return -1;
     }
 
-    if (fcntl(p[0], F_SETFL, O_NONBLOCK) <0 ) {
+    if (fcntl(p[0], F_SETFL, O_NONBLOCK) < 0) {
         perror("fcntl()");
+        return -1;
+    }
+
+    if (semop(sem_id, &V, 1) < 0) {
+        perror("semop()");
         return -1;
     }
 
@@ -60,14 +60,33 @@ int main(int argc, char *argv[]) {
     
     case 0:
         for (i = 1; i <= 5; ++i) {
+            puts("Child: waiting for semaphore.");
+            fflush(stdout);
+
             semop(sem_id, &P, 1);
+
+            puts("Child: semaphore is mine.");
+            fflush(stdout);
+
             if (fgets(msg, sizeof(msg), r) != NULL) {
-                puts(msg);
+                printf("child: %s\n", msg);
+                fflush(stdout);
             }
+
             fprintf(w, "[%d] hello from child", i);
             fflush(w);
+
             semop(sem_id, &V, 1);
+
+            puts("Child: semaphore released.");
+            fflush(stdout);
+
             sleep(1);
+        }
+
+        if (fgets(msg, sizeof(msg), r) != NULL) {
+            printf("child: %s\n", msg);
+            fflush(stdout);
         }
 
         fclose(w);
@@ -76,14 +95,33 @@ int main(int argc, char *argv[]) {
     }
 
     for (i = 1; i <= 5; ++i) {
+        puts("Parent: waiting for semaphore.");
+        fflush(stdout);
+
         semop(sem_id, &P, 1);
+
+        puts("Parent: semaphore is mine.");
+        fflush(stdout);
+
         if (fgets(msg, sizeof(msg), r) != NULL) {
-            puts(msg);
+            printf("parent: %s\n", msg);
+            fflush(stdout);
         }
+
         fprintf(w, "[%d] hello from parent", i);
         fflush(w);
+
         semop(sem_id, &V, 1);
+
+        puts("Parent: semaphore released.");
+        fflush(stdout);
+
         sleep(1);
+    }
+
+    if (fgets(msg, sizeof(msg), r) != NULL) {
+        printf("parent: %s\n", msg);
+        fflush(stdout);
     }
 
     fclose(w);

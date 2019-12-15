@@ -9,28 +9,39 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <fcntl.h>
+#include <errno.h>
 
 
 int main(int argc, char *argv[]) {
-    int sem_id, p[2], i;
+    int semid, p[2], sent = 0, received = 0;
     char path[] = "main.c";
     key_t key;
-    struct sembuf P = {0, -1, SEM_UNDO};
-    struct sembuf V = {0, +1, SEM_UNDO};
     char msg[128];
 
-    if ((key = ftok(path, 0)) < 0) {
+    struct sembuf write_sem_take_1 = {0, -1},
+                  write_sem_take_2 = {0, -2, IPC_NOWAIT},
+                  write_sem_put_3 = {0, +3},
+                  write_sem_wait = {0, 0},
+
+                  read_sem_take_1 = {1, -1},
+                  read_sem_take_2 = {1, -2},
+                  read_sem_put_1 = {1, +1},
+                  read_sem_put_3 = {1, +3},
+                  read_sem_wait = {1, 0};
+
+    if ((key = ftok(path, 2309)) < 0) {
         perror("ftok()");
         return -1;
     }
 
-    if ((sem_id = semget(key, 1, 0666 | IPC_CREAT)) < 0) {
+    if ((semid = semget(key, 2, 0666 | IPC_CREAT)) < 0) {
         perror("semget()");
         return -1;
     }
@@ -45,13 +56,12 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    if (semop(sem_id, &V, 1) < 0) {
-        perror("semop()");
+    union semun u;
+    u.val = 3;
+    if(semctl(semid, 0, SETVAL, u) < 0 || semctl(semid, 1, SETVAL, u) < 0) {
+        perror("semctl()");
         return -1;
     }
-
-    FILE *r = fdopen(p[0], "r");
-    FILE *w = fdopen(p[1], "w");
 
     switch (fork()) {
     case -1:
@@ -59,72 +69,72 @@ int main(int argc, char *argv[]) {
         return -1;
     
     case 0:
-        for (i = 1; i <= 5; ++i) {
-            puts("Child: waiting for semaphore.");
-            fflush(stdout);
+        while(sent != 6 || received != 6) {
+            if (sent != 6) {
+                if (semop(semid, &write_sem_take_2, 1) == 0) { // если удалось захватить семафор на запись
+                    sent++;
+                    snprintf(msg, sizeof msg, "child #%d msg\n", sent);
+                    write(p[1], msg, sizeof msg);
 
-            semop(sem_id, &P, 1);
-
-            puts("Child: semaphore is mine.");
-            fflush(stdout);
-
-            if (fgets(msg, sizeof(msg), r) != NULL) {
-                printf("child: %s\n", msg);
-                fflush(stdout);
+                    semop(semid, &write_sem_take_1, 1);
+                    semop(semid, &read_sem_wait, 1);
+                    semop(semid, &read_sem_put_3, 1);
+                } else if (errno != EAGAIN) {
+                    perror("semop()");
+                    return -1;
+                }
             }
+            
+            if (received != 6 && errno == EAGAIN) { // не удалось захватить
+                received++;
+                semop(semid, &read_sem_take_2, 1);
+                semop(semid, &write_sem_wait, 1);
 
-            fprintf(w, "[%d] hello from child", i);
-            fflush(w);
+                read(p[0], msg, sizeof msg);
+                printf("child: %s", msg);
+                fflush(stdout);
 
-            semop(sem_id, &V, 1);
-
-            puts("Child: semaphore released.");
-            fflush(stdout);
+                semop(semid, &read_sem_take_1, 1);
+                semop(semid, &write_sem_put_3, 1);
+            }
 
             sleep(1);
         }
 
-        if (fgets(msg, sizeof(msg), r) != NULL) {
-            printf("child: %s\n", msg);
-            fflush(stdout);
-        }
-
-        fclose(w);
-        fclose(r);
-        return 0;
+        return EXIT_SUCCESS;
     }
 
-    for (i = 1; i <= 5; ++i) {
-        puts("Parent: waiting for semaphore.");
-        fflush(stdout);
+    while(sent != 6 || received != 6) {
+        if (sent != 6) {
+            if (semop(semid, &write_sem_take_2, 1) == 0) { // если удалось захватить семафор на запись
+                sent++;
+                snprintf(msg, sizeof msg, "parent #%d msg\n", sent);
+                write(p[1], msg, sizeof msg);
 
-        semop(sem_id, &P, 1);
-
-        puts("Parent: semaphore is mine.");
-        fflush(stdout);
-
-        if (fgets(msg, sizeof(msg), r) != NULL) {
-            printf("parent: %s\n", msg);
-            fflush(stdout);
+                semop(semid, &write_sem_take_1, 1);
+                semop(semid, &read_sem_wait, 1);
+                semop(semid, &read_sem_put_3, 1);
+            } else if (errno != EAGAIN) {
+                perror("semop()");
+                return -1;
+            }
         }
 
-        fprintf(w, "[%d] hello from parent", i);
-        fflush(w);
+        if (received != 6 && errno == EAGAIN) { // не удалось захватить
+            received++;
+            semop(semid, &read_sem_take_2, 1);
+            semop(semid, &write_sem_wait, 1);
 
-        semop(sem_id, &V, 1);
+            read(p[0], msg, sizeof msg);
+            printf("parent: %s", msg);
+            fflush(stdout);
 
-        puts("Parent: semaphore released.");
-        fflush(stdout);
+            semop(semid, &read_sem_take_1, 1);
+            semop(semid, &write_sem_put_3, 1);
+        }
 
         sleep(1);
     }
 
-    if (fgets(msg, sizeof(msg), r) != NULL) {
-        printf("parent: %s\n", msg);
-        fflush(stdout);
-    }
-
-    fclose(w);
-    fclose(r);
-    return 0;
+    return EXIT_SUCCESS;
 }

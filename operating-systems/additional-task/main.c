@@ -18,25 +18,46 @@
 #include <fcntl.h>
 #include <errno.h>
 
+int semid, p[2], i;
+key_t key;
+char msg[128];
+
+struct sembuf write_sem_take_1 = {0, -1},
+              write_sem_take_2 = {0, -2},
+              write_sem_wait = {0, 0},
+
+              read_sem_take_1 = {1, -1},
+              read_sem_take_2 = {1, -2},
+              read_sem_wait = {1, 0},
+
+              sems_put_3[2] = {{0, +3}, {1, +3}};
+
+
+
+void piperead(char *msg, int length) {
+    semop(semid, &read_sem_take_2, 1);
+    semop(semid, &write_sem_wait, 1);
+
+    read(p[0], msg, length);
+
+    semop(semid, &read_sem_take_1, 1);
+}
+
+
+void pipewrite(const char *msg, int length) {
+    semop(semid, &write_sem_take_2, 1);
+
+    write(p[1], msg, length);
+
+    semop(semid, &write_sem_take_1, 1);
+    semop(semid, &read_sem_wait, 1);
+
+    semop(semid, sems_put_3, 2);
+}
+
 
 int main(int argc, char *argv[]) {
-    int semid, p[2], sent = 0, received = 0;
-    char path[] = "main.c";
-    key_t key;
-    char msg[128];
-
-    struct sembuf write_sem_take_1 = {0, -1},
-                  write_sem_take_2 = {0, -2, IPC_NOWAIT},
-                  write_sem_put_3 = {0, +3},
-                  write_sem_wait = {0, 0},
-
-                  read_sem_take_1 = {1, -1},
-                  read_sem_take_2 = {1, -2},
-                  read_sem_put_1 = {1, +1},
-                  read_sem_put_3 = {1, +3},
-                  read_sem_wait = {1, 0};
-
-    if ((key = ftok(path, 2309)) < 0) {
+    if ((key = ftok("main.c", 2309)) < 0) {
         perror("ftok()");
         return -1;
     }
@@ -68,72 +89,24 @@ int main(int argc, char *argv[]) {
         perror("fork()");
         return -1;
     
+    // child code
     case 0:
-        while(sent != 6 || received != 6) {
-            if (sent != 6) {
-                if (semop(semid, &write_sem_take_2, 1) == 0) { // если удалось захватить семафор на запись
-                    sent++;
-                    snprintf(msg, sizeof msg, "child #%d msg\n", sent);
-                    write(p[1], msg, sizeof msg);
-
-                    semop(semid, &write_sem_take_1, 1);
-                    semop(semid, &read_sem_wait, 1);
-                    semop(semid, &read_sem_put_3, 1);
-                } else if (errno != EAGAIN) {
-                    perror("semop()");
-                    return -1;
-                }
-            }
-            
-            if (received != 6 && errno == EAGAIN) { // не удалось захватить
-                received++;
-                semop(semid, &read_sem_take_2, 1);
-                semop(semid, &write_sem_wait, 1);
-
-                read(p[0], msg, sizeof msg);
-                printf("child: %s", msg);
-                fflush(stdout);
-
-                semop(semid, &read_sem_take_1, 1);
-                semop(semid, &write_sem_put_3, 1);
-            }
-
-            sleep(1);
+        for (i = 1; i <= 5; ++i) {
+            snprintf(msg, sizeof msg, " hello from child #%d", i);
+            pipewrite(msg, sizeof msg);
+            piperead(msg, sizeof msg);
+            printf(" CHILD: %s\n", msg);
         }
 
         return EXIT_SUCCESS;
     }
 
-    while(sent != 6 || received != 6) {
-        if (sent != 6) {
-            if (semop(semid, &write_sem_take_2, 1) == 0) { // если удалось захватить семафор на запись
-                sent++;
-                snprintf(msg, sizeof msg, "parent #%d msg\n", sent);
-                write(p[1], msg, sizeof msg);
-
-                semop(semid, &write_sem_take_1, 1);
-                semop(semid, &read_sem_wait, 1);
-                semop(semid, &read_sem_put_3, 1);
-            } else if (errno != EAGAIN) {
-                perror("semop()");
-                return -1;
-            }
-        }
-
-        if (received != 6 && errno == EAGAIN) { // не удалось захватить
-            received++;
-            semop(semid, &read_sem_take_2, 1);
-            semop(semid, &write_sem_wait, 1);
-
-            read(p[0], msg, sizeof msg);
-            printf("parent: %s", msg);
-            fflush(stdout);
-
-            semop(semid, &read_sem_take_1, 1);
-            semop(semid, &write_sem_put_3, 1);
-        }
-
-        sleep(1);
+    // parent code
+    for (i = 1; i <= 5; ++i) {
+        piperead(msg, sizeof msg);
+        printf("PARENT: %s\n", msg);
+        snprintf(msg, sizeof msg, "hello from parent #%d", i);
+        pipewrite(msg, sizeof msg);
     }
 
     return EXIT_SUCCESS;

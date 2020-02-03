@@ -62,11 +62,13 @@ int main() {
 
     for (auto &row : M) {
         auto it = row.begin();
-        while (it != row.end()) {
+        int r = 0;
+        while (it != row.end()-r) {
             if (*it >= a && *it <= b) {
                 row.erase(it);
                 row.push_back(d);
                 it = row.begin();
+                ++r;
             } else ++it;
         }
     }

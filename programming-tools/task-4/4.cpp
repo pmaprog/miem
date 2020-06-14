@@ -5,10 +5,10 @@ using namespace std;
 
 
 int main() {
-    vector<string> a; // массив строк
-    string s2, s3; // s2 - подстрока, s3 - предложение
+    vector<string> a;
+    string s2, s3;
 
-    // заполняем массив строк до тех пор, пока не встретилась строка "0"
+
     while (1) {
         string s;
         cin >> s;
@@ -22,31 +22,31 @@ int main() {
 
     cout << "\n";
 
-    // в цикле пробегаем по каждому слову
+
     for (auto &s : a) {
-        int pos = 0; // здесь хранится позиция найденной подстроки `ab`
-        while (pos != -1 || pos < s.length()) { // если `ab` не найдена в строке или мы дошли до конца строки, завершаем цикл
-            pos = s.find("ab", pos); // находим следующую `ab` в строке
-            if (pos != -1) { // если нашли
-                s.erase(pos, 2); // удаляем `ab`
-                s.insert(pos, "ccc"); // добавляем `ccc` вместо удаленной `ab`
+        int pos = 0;
+        while (pos != -1 || pos < s.length()) {
+            pos = s.find("ab", pos);
+            if (pos != -1) {
+                s.erase(pos, 2);
+                s.insert(pos, "ccc"); 
             }
         }
 
         if (s.length() > 1)
-            s2.append(s.substr(s.length() - 2)); // добавляем в подстроку последние два символа слова
+            s2.append(s.substr(s.length() - 2));
     }
 
-    // в цикле пробегаем по каждому слову
+
     for (auto s : a) {
         int i;
-        for (i = 0; i < s2.length(); ++i) // в цикле пробегаем по каждому символу подстроки
-            if (s.find(s2[i]) != -1) break; // если в слове ЕСТЬ символ подстроки, то выходим из цикла 
-        if (i == s2.length()) // если цикл дошел до конца, значит в слове нет ниодного символа подстроки
-            s3.append(s + " "); // добавляем слово в предложение
+        for (i = 0; i < s2.length(); ++i) 
+            if (s.find(s2[i]) != -1) break;
+        if (i == s2.length()) 
+            s3.append(s + " ");
     }
 
-    // далее идет вывод на экран
+
     cout << "После замены `ab` на `ccc`: \n";
     for (auto i : a)
         cout << i << "\n";

@@ -1,2 +1,6 @@
+__pycache__/
 build*/
 *.user
+*.sublime-project
+*.sublime-workspace
+*.exe
